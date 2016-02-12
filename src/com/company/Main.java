@@ -1,6 +1,6 @@
 package com.company;
 
-import javax.crypto.Cipher;
+
 import javax.swing.*;
 import javax.swing.text.AttributeSet;
 import javax.swing.text.SimpleAttributeSet;
@@ -10,10 +10,11 @@ import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.FocusEvent;
 import java.awt.event.FocusListener;
-import java.awt.event.KeyEvent;
 import java.io.IOException;
+
 import java.io.PrintWriter;
 import java.net.Socket;
+
 
 public class Main {
 
@@ -25,14 +26,16 @@ public class Main {
     public static JTextField userNameBox = new JTextField(200);
     private static JLabel userNameLabel = new JLabel("Användarnamn: ");
     public static String userName = "Anonymous";
-    public static JList usersOnline = new JList<>();
+    public static JList<String> usersOnline = new JList<>();
     private static JScrollPane spUsersOnline = new JScrollPane();
     public static JTextField messageField = new JTextField(20);
     private static JButton send = new JButton();
     private static JButton disconnect = new JButton();
     public static JTextPane tpConversation = new JTextPane();
+    public static JLabel error = new JLabel();
 
     public static void main(String[] args) {
+
         BuildMainWindow();
         Initialize();
 
@@ -60,38 +63,64 @@ public class Main {
         messageField.setVisible(false);
         disconnect.setVisible(false);
         send.setVisible(false);
+        userNameLabel.setVisible(true);
+        userNameBox.setVisible(true);
+        connectButton.setVisible(true);
 
     }
 
     public static void connect() {
         final int port = 1337;
         final String host = "chat.linkura.se";
-        userName = userNameBox.getText();
 
-        try {
-            Socket socket = new Socket(host, port);
-            System.out.println("Connected to server!");
-            testThread = new TestThread(socket);
-            PrintWriter out = new PrintWriter(socket.getOutputStream());
-            out.println("NICK "+userName);
-            out.flush();
-            Thread x = new Thread(testThread);
-            x.start();
-
-            userNameLabel.setVisible(false);
-            userNameBox.setVisible(false);
-            connectButton.setVisible(false);
-            messageField.setVisible(true);
-            messageField.requestFocus();
-            send.setVisible(true);
-            spConversation.setVisible(true);
-            spUsersOnline.setVisible(true);
-            disconnect.setVisible(true);
-
-
-        } catch (IOException e) {
-            e.printStackTrace();
+        userName = userNameBox.getText().trim();
+        int count = 0;
+        for (int i = 0; i < userName.length() ; i++) {
+            if (userName.charAt(i) == ' ') {
+                count++;
+            }
         }
+
+        if (count != 0 ) {
+            error.setText("Du får inte ha mellanslag i användarnamnet!");
+        }
+        else if (userName.isEmpty()) {
+            error.setText("Skriv ett användarnamn!");
+        }
+        else if (!userName.matches("[a-öA-Ö0-9]+")) {
+            error.setText("Användarnamnet får bara innhålla siffror och bokstäver!");
+        }
+        else if (userName.length() > 15) {
+            error.setText("Ditt användarnamn får max vara 15 tecken!");
+        }
+        else {
+            try {
+                Socket socket = new Socket(host, port);
+                testThread = new TestThread(socket);
+                Thread x = new Thread(testThread);
+                x.start();
+
+                PrintWriter out = new PrintWriter(socket.getOutputStream());
+
+                out.println("NICK " + userName);
+                out.flush();
+
+                userNameLabel.setVisible(false);
+                userNameBox.setVisible(false);
+                connectButton.setVisible(false);
+                messageField.setVisible(true);
+                messageField.requestFocus();
+                send.setVisible(true);
+                spConversation.setVisible(true);
+                spUsersOnline.setVisible(true);
+                disconnect.setVisible(true);
+
+
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
+
     }
 
     public static void BuildMainWindow()
@@ -138,8 +167,6 @@ public class Main {
         tpConversation.setBackground(new Color(4, 3, 10));
         tpConversation.setFont(new Font("Lucida Console", 0, 14));
 
-
-
         spConversation.setHorizontalScrollBarPolicy(ScrollPaneConstants.HORIZONTAL_SCROLLBAR_NEVER);
         spConversation.setVerticalScrollBarPolicy(ScrollPaneConstants.VERTICAL_SCROLLBAR_ALWAYS);
         spConversation.setViewportView(tpConversation);
@@ -152,16 +179,17 @@ public class Main {
         mainWindow.getContentPane().add(userNameBox);
         mainWindow.getContentPane().add(userNameLabel);
 
-        usersOnline.setForeground(new Color(0, 0, 255));
+        usersOnline.setForeground(new Color(0, 180, 255));
         usersOnline.setBackground(new Color(4, 3, 10));
-        usersOnline.setFont(new Font("Lucida Console", 0, 16));
+        usersOnline.setFont(new Font("Lucida Console", 0, 14));
         spUsersOnline.setHorizontalScrollBarPolicy(ScrollPaneConstants.HORIZONTAL_SCROLLBAR_NEVER);
         spUsersOnline.setVerticalScrollBarPolicy(ScrollPaneConstants.VERTICAL_SCROLLBAR_ALWAYS);
         spUsersOnline.setViewportView(usersOnline);
         mainWindow.getContentPane().add(spUsersOnline);
         spUsersOnline.setBounds(620, 10, 165, 300);
 
-        messageField.setForeground(new Color(4, 3, 10));
+        messageField.setForeground(new Color(255, 255, 255));
+        messageField.setBackground(new Color(4, 3, 10));
         messageField.requestFocus();
         messageField.addActionListener(action);
         mainWindow.getContentPane().add(messageField);
@@ -181,6 +209,13 @@ public class Main {
         disconnect.setFont(new Font("Lucida Console", 0, 14));
         mainWindow.getContentPane().add(disconnect);
         disconnect.setBounds(620, 320, 165, 30);
+
+        error.setFont(new Font("Lucida Console", 0, 14));
+        error.setForeground(new Color(255, 0, 23));
+        error.setBounds(120, 40, 525, 25);
+
+
+        mainWindow.getContentPane().add(error);
 
 
     }
@@ -236,7 +271,5 @@ public class Main {
     public static void disconnect() throws IOException {
         testThread.disconnect();
     }
-
-
 
 }
